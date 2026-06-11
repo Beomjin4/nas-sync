@@ -1,0 +1,35 @@
+# Rust
+target/
+**/*.rs.bk
+
+# Runtime data
+data/
+*.db
+
+# Local test vault — kept inside the repo for convenience but never committed.
+/test/
+*.db-journal
+*.db-shm
+*.db-wal
+
+# Env / secrets
+.env
+.env.local
+config.local.toml
+
+# Obsidian plugin build artifacts
+/plugin/node_modules/
+/plugin/main.js
+/plugin/*.js.map
+/plugin/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo

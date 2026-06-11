@@ -1,0 +1,29 @@
+services:
+  obsidian-nas:
+    # Builds from source by default. To use the prebuilt image instead,
+    # comment out the `build:` block and uncomment the ghcr image line:
+    #   image: ghcr.io/Beomjin4/nas-sync:latest
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    image: obsidian-nas-server:dev
+    container_name: obsidian-nas
+    restart: unless-stopped
+    ports:
+      # Host:Container. Change the host port if 8080 is taken on the NAS.
+      - "8080:8080"
+    volumes:
+      # On Synology, point this at e.g. /volume1/docker/obsidian-nas/data
+      - ./data:/data
+    environment:
+      ONS_BIND: "0.0.0.0:8080"
+      ONS_TRASH_TTL_DAYS: "30"
+      ONS_MAX_FILE_SIZE_MB: "100"
+      # ONS_JWT_SECRET picked up from .env (see .env.example)
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
