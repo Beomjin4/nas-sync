@@ -68,7 +68,7 @@ export default class NasSyncPlugin extends Plugin {
     this.registerEvent(this.app.vault.on("rename", this.engine.onRename));
 
     this.addCommand({
-      id: "nas-sync-reconnect",
+      id: "reconnect",
       name: "Reconnect to NAS",
       callback: () => {
         if (!this.settings.token) {
@@ -80,13 +80,13 @@ export default class NasSyncPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "nas-sync-conflicts",
+      id: "conflicts",
       name: "Show sync conflicts",
       callback: () => void this.openConflictList(),
     });
 
     this.addCommand({
-      id: "nas-sync-push-all",
+      id: "push-all",
       name: "Push all unsynced files now",
       callback: () => {
         const n = this.engine.fullScan();
@@ -145,6 +145,12 @@ export default class NasSyncPlugin extends Plugin {
   async loadSettings() {
     const raw = (await this.loadData()) as Partial<PluginData> | null;
     this.settings = { ...DEFAULT_SETTINGS, ...(raw?.settings ?? {}) };
+    if (!raw?.settings?.excludePatterns) {
+      this.settings.excludePatterns = [
+        `${this.app.vault.configDir}/**`,
+        ".trash/**",
+      ];
+    }
     this.syncState = { ...DEFAULT_SYNC_STATE, ...(raw?.syncState ?? {}) };
   }
 

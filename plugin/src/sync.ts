@@ -66,8 +66,10 @@ export class SyncClient {
 
     this.ws.onmessage = (ev) => {
       try {
-        const msg = JSON.parse(ev.data) as SyncMessage;
-        this.onMessage(msg);
+        if (typeof ev.data === "string") {
+          const msg = JSON.parse(ev.data) as SyncMessage;
+          this.onMessage(msg);
+        }
       } catch {
         console.warn("[nas-sync] bad ws message", ev.data);
       }

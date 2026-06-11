@@ -11,15 +11,13 @@ export interface NasSyncSettings {
   excludePatterns: string[];
 }
 
-export const DEFAULT_EXCLUDES = [".obsidian/**", ".trash/**"];
-
 export const DEFAULT_SETTINGS: NasSyncSettings = {
   serverUrl: "",
   pairingCode: "",
   deviceName: "",
   deviceId: null,
   token: null,
-  excludePatterns: [...DEFAULT_EXCLUDES],
+  excludePatterns: [],
 };
 
 export class NasSyncSettingTab extends PluginSettingTab {
@@ -34,7 +32,9 @@ export class NasSyncSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "NAS Sync" });
+    new Setting(containerEl)
+      .setName("NAS Sync")
+      .setHeading();
 
     new Setting(containerEl)
       .setName("Server URL")

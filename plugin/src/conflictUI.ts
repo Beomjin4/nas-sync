@@ -79,9 +79,11 @@ class ConflictResolveModal extends Modal {
     contentEl.createEl("h2", { text: `Conflict: ${this.conflict.path}` });
 
     const grid = contentEl.createDiv({ cls: "nas-sync-conflict-grid" });
-    grid.style.display = "grid";
-    grid.style.gridTemplateColumns = "1fr 1fr";
-    grid.style.gap = "8px";
+    grid.setCssStyles({
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: "8px",
+    });
 
     for (const [title, text] of [
       ["Current version (active)", this.activeText],
@@ -90,11 +92,13 @@ class ConflictResolveModal extends Modal {
       const col = grid.createDiv();
       col.createEl("h4", { text: title });
       const pre = col.createEl("pre");
-      pre.style.maxHeight = "40vh";
-      pre.style.overflow = "auto";
-      pre.style.whiteSpace = "pre-wrap";
-      pre.style.border = "1px solid var(--background-modifier-border)";
-      pre.style.padding = "8px";
+      pre.setCssStyles({
+        maxHeight: "40vh",
+        overflow: "auto",
+        whiteSpace: "pre-wrap",
+        border: "1px solid var(--background-modifier-border)",
+        padding: "8px",
+      });
       pre.setText(text);
     }
 

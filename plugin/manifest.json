@@ -2,7 +2,7 @@
   "id": "nas-sync",
   "name": "NAS Sync",
   "version": "0.1.0",
-  "minAppVersion": "1.4.0",
+  "minAppVersion": "1.5.0",
   "description": "Self-hosted real-time vault sync to your own NAS, with conflict tracking, trash retention, and a web admin console.",
   "author": "beomjin",
   "authorUrl": "https://github.com/beomjin-kim",
