@@ -33,7 +33,7 @@ export class NasSyncSettingTab extends PluginSettingTab {
     containerEl.empty();
 
     new Setting(containerEl)
-      .setName("NAS Sync")
+      .setName("Sync settings")
       .setHeading();
 
     new Setting(containerEl)
