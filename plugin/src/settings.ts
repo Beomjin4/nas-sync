@@ -33,10 +33,6 @@ export class NasSyncSettingTab extends PluginSettingTab {
     containerEl.empty();
 
     new Setting(containerEl)
-      .setName("Sync settings")
-      .setHeading();
-
-    new Setting(containerEl)
       .setName("Server URL")
       .setDesc("Example: http://192.168.1.10:8080")
       .addText((t) =>
