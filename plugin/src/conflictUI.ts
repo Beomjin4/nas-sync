@@ -14,7 +14,7 @@ export class ConflictListModal extends Modal {
 
   onOpen() {
     const { contentEl } = this;
-    contentEl.createEl("h2", { text: "Sync conflicts" });
+    this.setTitle("Sync conflicts");
 
     if (this.conflicts.length === 0) {
       contentEl.createEl("p", { text: "No unresolved conflicts. 🎉" });
@@ -76,29 +76,17 @@ class ConflictResolveModal extends Modal {
   onOpen() {
     const { contentEl, modalEl } = this;
     modalEl.addClass("nas-sync-conflict-modal");
-    contentEl.createEl("h2", { text: `Conflict: ${this.conflict.path}` });
+    this.setTitle(`Conflict: ${this.conflict.path}`);
 
     const grid = contentEl.createDiv({ cls: "nas-sync-conflict-grid" });
-    grid.setCssStyles({
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: "8px",
-    });
 
     for (const [title, text] of [
       ["Current version (active)", this.activeText],
       [`Other device's version (${this.conflict.losing_device ?? "?"})`, this.losingText],
     ] as const) {
       const col = grid.createDiv();
-      col.createEl("h4", { text: title });
-      const pre = col.createEl("pre");
-      pre.setCssStyles({
-        maxHeight: "40vh",
-        overflow: "auto",
-        whiteSpace: "pre-wrap",
-        border: "1px solid var(--background-modifier-border)",
-        padding: "8px",
-      });
+      col.createDiv({ cls: "nas-sync-conflict-coltitle", text: title });
+      const pre = col.createEl("pre", { cls: "nas-sync-conflict-pre" });
       pre.setText(text);
     }
 

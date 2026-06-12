@@ -1,0 +1,27 @@
+/* NAS Sync — conflict resolution modal */
+
+.nas-sync-conflict-modal {
+  width: 80vw;
+  max-width: 900px;
+}
+
+.nas-sync-conflict-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.nas-sync-conflict-coltitle {
+  font-weight: 600;
+  margin: 4px 0;
+}
+
+.nas-sync-conflict-pre {
+  max-height: 40vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  padding: 8px;
+  margin: 0;
+}

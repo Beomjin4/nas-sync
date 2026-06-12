@@ -60,7 +60,7 @@ export class NasApi {
     if (r.status >= 400) {
       throw new Error(`HTTP ${r.status}: ${r.text}`);
     }
-    return r.json as PairResponse;
+    return parsePairResponse(r.json);
   }
 
   /** Returns null on 404. */
@@ -101,7 +101,7 @@ export class NasApi {
     if (r.status >= 400) {
       throw new Error(`PUT ${path}: HTTP ${r.status} ${r.text}`);
     }
-    return r.json as PutResult;
+    return parsePutResult(r.json);
   }
 
   /**
@@ -130,7 +130,7 @@ export class NasApi {
       throw: false,
     });
     if (r.status >= 400) throw new Error(`GET /files: HTTP ${r.status}`);
-    return r.json as RemoteFileEntry[];
+    return parseArray(r.json, parseRemoteFileEntry);
   }
 
   // ---------- conflicts ----------
@@ -143,7 +143,7 @@ export class NasApi {
       throw: false,
     });
     if (r.status >= 400) throw new Error(`GET /conflicts: HTTP ${r.status}`);
-    return r.json as ConflictInfo[];
+    return parseArray(r.json, parseConflictInfo);
   }
 
   /** Body of the losing (preserved) version of a conflict. */
@@ -190,6 +190,78 @@ export class NasApi {
 
 function encodePath(p: string): string {
   return p.split("/").map(encodeURIComponent).join("/");
+}
+
+// ---------- response validation ----------
+// requestUrl().json is untyped; validate shapes instead of blind casts.
+
+function asObject(v: unknown, what: string): Record<string, unknown> {
+  if (typeof v !== "object" || v === null || Array.isArray(v)) {
+    throw new Error(`unexpected server response (${what})`);
+  }
+  return v as Record<string, unknown>;
+}
+
+function str(o: Record<string, unknown>, key: string, what: string): string {
+  const v = o[key];
+  if (typeof v !== "string") {
+    throw new Error(`unexpected server response (${what}.${key})`);
+  }
+  return v;
+}
+
+function num(o: Record<string, unknown>, key: string, what: string): number {
+  const v = o[key];
+  if (typeof v !== "number") {
+    throw new Error(`unexpected server response (${what}.${key})`);
+  }
+  return v;
+}
+
+function parseArray<T>(v: unknown, item: (x: unknown) => T): T[] {
+  if (!Array.isArray(v)) throw new Error("unexpected server response (array)");
+  return v.map(item);
+}
+
+function parsePairResponse(v: unknown): PairResponse {
+  const o = asObject(v, "pair");
+  return { device_id: str(o, "device_id", "pair"), token: str(o, "token", "pair") };
+}
+
+function parsePutResult(v: unknown): PutResult {
+  const o = asObject(v, "put");
+  let conflict: PutResult["conflict"] = null;
+  if (o.conflict !== null && o.conflict !== undefined) {
+    const c = asObject(o.conflict, "put.conflict");
+    conflict = {
+      id: str(c, "id", "conflict"),
+      previous_etag: str(c, "previous_etag", "conflict"),
+      stored_path: str(c, "stored_path", "conflict"),
+    };
+  }
+  return { etag: str(o, "etag", "put"), conflict };
+}
+
+function parseRemoteFileEntry(v: unknown): RemoteFileEntry {
+  const o = asObject(v, "file");
+  return {
+    path: str(o, "path", "file"),
+    etag: str(o, "etag", "file"),
+    size_bytes: num(o, "size_bytes", "file"),
+    modified_at: str(o, "modified_at", "file"),
+  };
+}
+
+function parseConflictInfo(v: unknown): ConflictInfo {
+  const o = asObject(v, "conflict");
+  return {
+    id: str(o, "id", "conflict"),
+    path: str(o, "path", "conflict"),
+    active_etag: str(o, "active_etag", "conflict"),
+    losing_etag: str(o, "losing_etag", "conflict"),
+    losing_device: typeof o.losing_device === "string" ? o.losing_device : null,
+    detected_at: str(o, "detected_at", "conflict"),
+  };
 }
 
 function stripQuotes(s: string): string {
