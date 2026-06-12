@@ -90,14 +90,17 @@ export class SyncClient {
     };
 
     this.ws.onmessage = (ev) => {
+      // MessageEvent#data is `any`; narrow through `unknown` so nothing
+      // unsafe flows into typed parameters.
+      const raw: unknown = ev.data;
       try {
-        if (typeof ev.data === "string") {
-          const msg = parseSyncMessage(JSON.parse(ev.data));
+        if (typeof raw === "string") {
+          const msg = parseSyncMessage(JSON.parse(raw));
           if (msg) this.onMessage(msg);
-          else console.warn("[nas-sync] unknown ws message", ev.data);
+          else console.warn("[nas-sync] unknown ws message", raw);
         }
       } catch {
-        console.warn("[nas-sync] bad ws message", ev.data);
+        console.warn("[nas-sync] bad ws message", raw);
       }
     };
 

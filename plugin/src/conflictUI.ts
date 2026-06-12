@@ -14,7 +14,7 @@ export class ConflictListModal extends Modal {
 
   onOpen() {
     const { contentEl } = this;
-    this.setTitle("Sync conflicts");
+    this.titleEl.setText("Sync conflicts");
 
     if (this.conflicts.length === 0) {
       contentEl.createEl("p", { text: "No unresolved conflicts. 🎉" });
@@ -76,7 +76,7 @@ class ConflictResolveModal extends Modal {
   onOpen() {
     const { contentEl, modalEl } = this;
     modalEl.addClass("nas-sync-conflict-modal");
-    this.setTitle(`Conflict: ${this.conflict.path}`);
+    this.titleEl.setText(`Conflict: ${this.conflict.path}`);
 
     const grid = contentEl.createDiv({ cls: "nas-sync-conflict-grid" });
 
