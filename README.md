@@ -67,9 +67,8 @@ docker compose up -d --build
 curl http://localhost:8080/health   # → {"status":"ok", ...}
 ```
 
-Prebuilt images are published to GHCR on each release — see
-`docker-compose.yml` comments to use `ghcr.io/Beomjin4/nas-sync` instead of
-building from source.
+The first build compiles the Rust server from source (a few minutes);
+afterwards the container restarts instantly.
 
 Synology / QNAP notes, reverse-proxy and TLS guidance: [DEPLOY.md](./DEPLOY.md).
 

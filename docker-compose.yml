@@ -1,8 +1,5 @@
 services:
   obsidian-nas:
-    # Builds from source by default. To use the prebuilt image instead,
-    # comment out the `build:` block and uncomment the ghcr image line:
-    #   image: ghcr.io/Beomjin4/nas-sync:latest
     build:
       context: ./server
       dockerfile: Dockerfile

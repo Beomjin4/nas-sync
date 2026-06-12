@@ -66,8 +66,8 @@ docker compose up -d --build
 curl http://localhost:8080/health   # → {"status":"ok", ...}
 ```
 
-릴리스마다 GHCR에 미리 빌드된 이미지가 올라갑니다 — 소스 빌드 대신
-`ghcr.io/Beomjin4/nas-sync`를 쓰려면 `docker-compose.yml`의 주석을 참고하세요.
+첫 빌드 때만 Rust 서버를 소스에서 컴파일합니다 (몇 분 소요). 이후
+컨테이너 재시작은 즉시 됩니다.
 
 시놀로지/QNAP 안내, 리버스 프록시·TLS 설정: [DEPLOY.ko.md](./DEPLOY.ko.md)
 
