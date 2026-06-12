@@ -328,9 +328,8 @@ export class SyncEngine {
     const af = this.app.vault.getAbstractFileByPath(path);
     if (af) {
       this.markIgnored(path);
-      // vault.trash predates fileManager.trashFile and keeps us within
-      // the declared minAppVersion; `true` = system trash.
-      await this.app.vault.trash(af, true);
+      // trashFile (@since 1.6.6) honors the user's deletion preference.
+      await this.app.fileManager.trashFile(af);
     }
     this.etags.delete(path);
     this.fileMeta.delete(path);
