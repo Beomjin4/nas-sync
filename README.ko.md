@@ -73,14 +73,18 @@ curl http://localhost:8080/health   # → {"status":"ok", ...}
 
 ### 2. 플러그인
 
-커뮤니티 스토어 등록 전까지는 수동 설치:
+**커뮤니티 스토어에서 설치 (권장):** Obsidian → 설정 → 커뮤니티 플러그인
+→ 탐색 → **NAS Sync** 검색 → 설치 → 활성화.
+
+**수동 설치** (또는 스토어 등록 심사 전):
 
 1. [최신 릴리스](../../releases/latest)에서 `nas-sync.zip` 다운로드
 2. `<보관함>/.obsidian/plugins/` 안에 압축 해제
    (`plugins/nas-sync/`에 `main.js` + `manifest.json`이 들어가도록)
 3. Obsidian → 설정 → 커뮤니티 플러그인 → **NAS Sync** 활성화
-4. 플러그인 설정에서 서버 URL과 `.env`의 페어링 코드 입력 →
-   **Pair this device**
+
+그 다음 플러그인 설정에서 서버 URL과 `.env`의 페어링 코드를 입력하고
+**Pair this device**를 누르세요.
 
 **온보딩 동작 방식:** **최초로 페어링한 기기**의 보관함 전체가 NAS에
 업로드되며, 그것이 원본이 됩니다. 이후 페어링하는 기기들은 첫 연결 시

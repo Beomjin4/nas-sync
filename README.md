@@ -74,14 +74,18 @@ Synology / QNAP notes, reverse-proxy and TLS guidance: [DEPLOY.md](./DEPLOY.md).
 
 ### 2. Plugin
 
-Until the plugin is in the community store, install manually:
+**From the community store (recommended):** Obsidian → Settings → Community
+plugins → Browse → search **NAS Sync** → Install → Enable.
+
+**Manual install** (or before the store listing is approved):
 
 1. Download `nas-sync.zip` from the [latest release](../../releases/latest)
 2. Extract into `<your vault>/.obsidian/plugins/` (creating
    `plugins/nas-sync/` with `main.js` + `manifest.json`)
 3. Obsidian → Settings → Community plugins → enable **NAS Sync**
-4. In the plugin settings: enter your server URL and the pairing code from
-   your `.env`, then **Pair this device**
+
+Then, in the plugin settings: enter your server URL and the pairing code from
+your `.env`, and click **Pair this device**.
 
 **How onboarding works:** the **first device** you pair uploads its entire
 vault to the NAS — that becomes the canonical copy. Every device paired
