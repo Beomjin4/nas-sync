@@ -40,6 +40,7 @@ pub fn router() -> Router<AppState> {
         .route("/files/raw", get(file_raw))
         .route("/files/download", get(file_download))
         .route("/conflicts", get(conflicts_page))
+        .route("/conflicts/:id/compare", get(conflict_compare))
         .route("/conflicts/:id/resolve", post(conflict_resolve))
         .route("/trash", get(trash_page))
         .route("/trash/:id/restore", post(trash_restore))
@@ -199,6 +200,18 @@ fn tr(l: Lang, k: &str) -> &'static str {
         (Lang::En, "no_preview") => "Preview is not available for this file type.",
         (Lang::Ko, "too_large") => "파일이 커서 미리보기를 표시하지 않습니다 (256 KB 제한).",
         (Lang::En, "too_large") => "File too large to preview (256 KB limit).",
+        (Lang::Ko, "compare") => "비교",
+        (Lang::En, "compare") => "Compare",
+        (Lang::Ko, "current_version") => "현재 버전 (활성)",
+        (Lang::En, "current_version") => "Current version (active)",
+        (Lang::Ko, "other_version") => "다른 기기 버전",
+        (Lang::En, "other_version") => "Other device's version",
+        (Lang::Ko, "missing_local") => "(활성 버전이 없습니다)",
+        (Lang::En, "missing_local") => "(no active version)",
+        (Lang::Ko, "binary_file") => "(바이너리 파일 — 미리보기 불가)",
+        (Lang::En, "binary_file") => "(binary file — cannot preview)",
+        (Lang::Ko, "back_to_conflicts") => "← 충돌 목록",
+        (Lang::En, "back_to_conflicts") => "← Back to conflicts",
         _ => "?",
     }
 }
@@ -620,15 +633,19 @@ async fn conflicts_page(
         ));
         for (id, path, detected, device) in rows {
             body.push_str(&format!(
-                r#"<tr><td>{}</td><td>{}</td><td>{}</td><td>
+                r#"<tr><td><a href="/admin/conflicts/{}/compare">{}</a></td><td>{}</td><td>{}</td><td>
+                <a class="btn" href="/admin/conflicts/{}/compare">{}</a>
                 <form method="post" action="/admin/conflicts/{}/resolve" class="inline">
                     <button name="choice" value="keep_active">{}</button>
                     <button name="choice" value="use_other">{}</button>
                     <button name="choice" value="keep_both">{}</button>
                 </form></td></tr>"#,
+                esc(&id),
                 esc(&path),
                 esc(&detected[..19.min(detected.len())]),
                 esc(device.as_deref().unwrap_or("?")),
+                esc(&id),
+                tr(l, "compare"),
                 esc(&id),
                 tr(l, "keep_active"),
                 tr(l, "use_other"),
@@ -638,6 +655,91 @@ async fn conflicts_page(
         body.push_str("</table>");
     }
     Ok(Html(layout(l, "conflicts", body)).into_response())
+}
+
+/// Side-by-side comparison of the active version (in the vault) and the
+/// losing version (preserved under conflicts/). Each side is read once,
+/// on demand — same cost as a download.
+async fn conflict_compare(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    AxumPath(id): AxumPath<String>,
+) -> AppResult<Response> {
+    if let Err(r) = require_auth(&state, &headers) {
+        return Ok(r);
+    }
+    let l = lang_of(&headers);
+
+    let row: Option<(String, String, Option<String>, String)> = sqlx::query_as(
+        "SELECT c.path, c.stored_path, d.name, c.detected_at \
+         FROM conflicts c LEFT JOIN devices d ON d.id = c.losing_device \
+         WHERE c.id = ? AND c.resolved_at IS NULL",
+    )
+    .bind(&id)
+    .fetch_optional(&state.pool)
+    .await?;
+    let Some((path, stored_path, device, detected)) = row else {
+        return Ok((StatusCode::NOT_FOUND, "conflict not found or already resolved")
+            .into_response());
+    };
+
+    // Active side: current vault file (may be absent if it was deleted).
+    let active_html = match state.storage.resolve_vault(&path) {
+        Ok((abs, _)) => match tokio::fs::read(&abs).await {
+            Ok(bytes) => render_pane(&bytes),
+            Err(_) => format!("<p class=\"muted\">{}</p>", tr(l, "missing_local")),
+        },
+        Err(_) => format!("<p class=\"muted\">{}</p>", tr(l, "missing_local")),
+    };
+
+    // Losing side: preserved copy under conflicts/.
+    let losing_html = match state.storage.conflicts_target(&stored_path) {
+        Ok(abs) => match tokio::fs::read(&abs).await {
+            Ok(bytes) => render_pane(&bytes),
+            Err(_) => format!("<p class=\"muted\">{}</p>", tr(l, "binary_file")),
+        },
+        Err(_) => format!("<p class=\"muted\">{}</p>", tr(l, "binary_file")),
+    };
+
+    let body = format!(
+        r#"<div class="bar"><a class="btn" href="/admin/conflicts">{back}</a></div>
+<h3>{path}</h3><p class="count">{dev} · {when}</p>
+<div class="cmp">
+  <div class="cmp-pane"><div class="cmp-head cmp-head-active">{cur}</div>{active}</div>
+  <div class="cmp-pane"><div class="cmp-head cmp-head-other">{oth}</div>{losing}</div>
+</div>
+<form method="post" action="/admin/conflicts/{id}/resolve" class="cmp-actions">
+  <button name="choice" value="keep_active" class="primary">{keep_active}</button>
+  <button name="choice" value="use_other">{use_other}</button>
+  <button name="choice" value="keep_both">{keep_both}</button>
+</form>"#,
+        back = tr(l, "back_to_conflicts"),
+        path = esc(&path),
+        dev = esc(device.as_deref().unwrap_or("?")),
+        when = esc(&detected[..19.min(detected.len())]),
+        cur = tr(l, "current_version"),
+        oth = format!("{} ({})", tr(l, "other_version"), esc(device.as_deref().unwrap_or("?"))),
+        active = active_html,
+        losing = losing_html,
+        id = esc(&id),
+        keep_active = tr(l, "keep_active"),
+        use_other = tr(l, "use_other"),
+        keep_both = tr(l, "keep_both"),
+    );
+    Ok(Html(layout(l, "conflicts", body)).into_response())
+}
+
+/// Render one comparison pane: UTF-8 text in a <pre>, or a placeholder for
+/// binary content. Caps display to avoid dumping a huge file into the page.
+fn render_pane(bytes: &[u8]) -> String {
+    const MAX: usize = 256 * 1024;
+    if bytes.len() > MAX {
+        return format!("<pre class=\"cmp-text\">({} KB)</pre>", bytes.len() / 1024);
+    }
+    match std::str::from_utf8(bytes) {
+        Ok(text) => format!("<pre class=\"cmp-text\">{}</pre>", esc(text)),
+        Err(_) => "<pre class=\"cmp-text muted\">(binary)</pre>".to_string(),
+    }
 }
 
 #[derive(Deserialize)]
@@ -905,7 +1007,7 @@ fn layout(l: Lang, active: &str, body: String) -> String {
     for (slug, icon) in NAV_ITEMS {
         let cls = if slug == active { " class=\"on\"" } else { "" };
         nav.push_str(&format!(
-            r#"<a href="/admin/{slug}"{cls}><span class="ico">{icon}</span>{}</a>"#,
+            r#"<a href="/admin/{slug}"{cls}><span class="ico">{icon}</span><span class="lbl">{}</span></a>"#,
             tr(l, slug)
         ));
     }
@@ -980,7 +1082,33 @@ select{{padding:7px;border-radius:7px;border:1px solid #cdd4e0;background:#fff}}
 .preview-text{{background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(20,30,60,.07);white-space:pre-wrap;word-break:break-word;max-height:70vh;overflow:auto}}
 td a{{color:#2455b5;text-decoration:none}}
 td a:hover{{text-decoration:underline}}
-@media (max-width:700px){{.shell{{flex-direction:column}}aside{{width:100%;flex-direction:row;align-items:center}}aside nav{{flex-direction:row;overflow-x:auto}}.logo,.aside-foot{{border:0}}}}
+.muted{{color:#8a93a6}}
+.cmp{{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}}
+.cmp-pane{{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px rgba(20,30,60,.07);min-width:0}}
+.cmp-head{{padding:8px 12px;font-weight:600;font-size:12px;border-bottom:1px solid #eef0f4}}
+.cmp-head-active{{background:#e8efff;color:#2455b5}}
+.cmp-head-other{{background:#fff3df;color:#a96b00}}
+.cmp-text{{margin:0;padding:12px;white-space:pre-wrap;word-break:break-word;max-height:60vh;overflow:auto;font-size:13px}}
+.cmp-pane p{{padding:12px;margin:0}}
+.cmp-actions{{display:flex;flex-wrap:wrap;gap:8px}}
+/* Tables scroll horizontally rather than overflowing the viewport. */
+table{{display:block;overflow-x:auto;white-space:nowrap}}
+table.kv{{white-space:normal}}
+td,th{{white-space:nowrap}}
+@media (max-width:760px){{
+  .shell{{flex-direction:column}}
+  aside{{width:100%;flex-direction:row;align-items:center}}
+  aside nav{{flex-direction:row;overflow-x:auto}}
+  aside nav a .lbl{{display:none}}
+  aside nav a{{padding:9px 11px}}
+  .logo,.aside-foot{{border:0}}
+  .aside-foot{{flex-shrink:0}}
+  header{{padding:12px 16px}}
+  section{{padding:16px}}
+  .cmp{{grid-template-columns:1fr}}
+  .search{{width:100%}}
+  .bar{{flex-wrap:wrap}}
+}}
 </style></head><body>{content}</body></html>"#
     )
 }
