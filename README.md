@@ -2,8 +2,7 @@
 
 [English](./README.md) | **한국어**
 
-내 NAS에서 직접 돌리는 Obsidian 실시간 동기화. Rust로 작성된 단일 바이너리
-서버가 NAS에서 돌고, Obsidian 플러그인이 모든 기기를 동기화합니다.
+내 NAS에서 직접 돌리는 Obsidian 실시간 동기화. Nas sync가 서버가 NAS에서 돌고, Obsidian 플러그인을 통해 모든 기기에서 동기화합니다.
 
 ## 기능
 
